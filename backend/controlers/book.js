@@ -55,7 +55,7 @@ exports.deleteBook = (req, res, next) => {
     .catch(error => res.status(500).json({error}));
 };
 
-// lire les information de lélément séléctionner
+// lire les information de lélément sélectionné
 exports.selectBook = (req, res, next) =>{
     Book.findOne({ _id: req.params.id})
         .then(book => res.status(200).json(book))
@@ -68,3 +68,41 @@ exports.readBook = (req, res, next) =>{
         .then(book => res.status(200).json(book))
         .catch(error => res.status(400).json({ error }));
 };
+
+// noter un éléments sélectionné
+exports.ratingBook = (req, res, next) =>{
+    Book.findOne({ _id: req.params.id})
+    .then(book =>{ 
+            if(!req.auth.userId){
+                res.status(400).json({ error });
+            } else {
+                const rating = req.body.book;
+                const grades = book.ratings.map((rating) => rating.grade);
+                const sumRating = grades.reduce((total, grade) => total + grade, 0);
+                const totalRating = sumRating + rating;
+                const newAverageRating = Number((totalRating / (book.ratings.length + 1)).toFixed(0));
+
+                book.rating.push({userId, grade: rating});
+                book.averageRating = newAverageRating;
+
+                book.save()
+                .then(() => res.status(201).json({ message: 'Note enregistré !'}))
+                .catch(error => res.status(400).json({ error }));
+            }
+    })
+    .catch(error => res.status(401).json({ error }));
+};
+
+// voir les 3 éléments les mieux noté
+exports.bestRating = (req, res, next) =>{
+    Book.find()
+    .then( book =>{
+        const bestBook = Array.form(book)
+        bestBook.sort(function(a, b){
+            return b.averageRating - a.averageRating
+        });
+        res.status(200).json(book)
+
+    })
+    .catch(error => res.status(400).json({ error }));
+}

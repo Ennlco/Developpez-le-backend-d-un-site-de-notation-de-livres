@@ -1,4 +1,5 @@
 const multer = require('multer');
+const sharp = require('sharp');
 
 const MINE_TYPES ={
     'image/jpg': 'jpg',
@@ -17,4 +18,13 @@ const storage = multer.diskStorage({
     }
 });
 
-module.exports = multer({storage}).single('image');
+const resizeImg = (req, res, next) =>{
+    sharp(storage.filename) 
+    .resize(500)
+    .toBuffer()
+    .then(() => res.status(200).json({message: 'image redimentionné !'}))
+    .catch(error => res.status(401).json({error}));
+    next();
+};
+
+module.exports = multer({storage, resizeImg}).single('image');
