@@ -11,6 +11,7 @@ const bookCtrl = require('../controlers/book');
 router.get('/', bookCtrl.readBook);
 // route pour voir les 3 éléments les mieux noté
 router.get('/bestrating', bookCtrl.bestRating);
+
 // route pour ajouter un élément
 router.post('/', auth, multer, bookCtrl.createBook);
 
