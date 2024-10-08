@@ -23,7 +23,7 @@ router.put('/:id', auth, multer, bookCtrl.updateBook);
 router.delete('/:id', auth, bookCtrl.deleteBook);
 
 // route pour noter un élément
-router.post('/:id/rating', bookCtrl.ratingBook);
+router.post('/:id/rating', auth, bookCtrl.ratingBook);
  
 
 module.exports = router;

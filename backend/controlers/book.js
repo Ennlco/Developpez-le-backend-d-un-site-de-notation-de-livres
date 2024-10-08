@@ -1,3 +1,4 @@
+const { error } = require('console');
 const Book = require('../models/Book');
 const fs = require('fs');
 
@@ -70,29 +71,26 @@ exports.readBook = (req, res, next) =>{
 };
 
 // noter un éléments sélectionné
-exports.ratingBook = (req, res, next) =>{
-    Book.findOne({ _id: req.params.id})
-    .then(book =>{
-        const rating = res.body.ratings;
-        const userId = req.auth.userId;
-        const ratingsBase = book.ratings;
-        const newRating = {userId: userId, grade: rating};
-        const userRating = book.ratings.find((rating) => rating.userId === userId);
-        if(userRating){
-            res.status(404).json({message: 'Vous avez déjà noté ce livre !'})
-        } else {
-            ratingsBase.push(newRating);
-    
-            const ratingTotal = book.ratings.length;
-            const ratingSum = book.ratings.reduce((sum, rating) => sum + rating.grade, 0);
-            book.averageRating = (ratingSum / ratingTotal).toFixed(0);
+exports.ratingBook = (req, res, next) =>{ 
+    const userId = req.auth.userId; 
+    const rating = req.body.rating; 
+
+    Book.findById({ _id: req.params.id })
+        .then((book) => {
+            if (!book) {
+                res.status(404).json({error: 'Livre non trouvé !'})
+            }
+            book.ratings.push({ userId, grade: rating });
+
+            const totalRatings = book.ratings.length;
+            const sumRatings = book.ratings.reduce((sum, r) => sum + r.grade, 0);
+            book.averageRating = (sumRatings / totalRatings).toFixed(1);
 
             book.save()
-            .then(() => res.status(201).json({ message: 'Note enregistré !'}))
+            .then((book) => {res.status(201).json(book)})
             .catch(error => res.status(400).json({ error }));
-        }
-    })
-    .catch(error => res.status(400).json({ error }));
+        })
+        .catch(error => res.status(400).json({ error }));
 };
 
 // voir les 3 éléments les mieux noté
@@ -102,7 +100,7 @@ exports.bestRating = (req, res, next) =>{
         .limit(3)
         .then(bestBooks => {
             if (!bestBooks) {
-                return res.status(400).json({ error: "Requête impossible !" });
+                res.status(400).json({ error: "Requête impossible !" });
             }
             res.status(200).json(bestBooks);
         })
