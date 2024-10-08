@@ -75,15 +75,12 @@ exports.ratingBook = (req, res, next) =>{
 };
 
 // voir les 3 éléments les mieux noté
-exports.bestRating = (req, res, next) =>{
-    Book.find()
-    .then(book =>{
-        
-        //book = Array.from(book)
-        book.sort(function(a, b){
-           return b.ratings.grade - a.ratings.grade
-        });
-        res.status(200).json(book)
-    })
-    .catch(error => res.status(400).json({ error }));
+exports.bestRating = async (req, res, next) =>{
+    const bestBook = await Book.find()
+    .sort({averageRating: -1})
+    .limit(3);
+    if(!bestBook){
+        res.status(400).json({ error: "requête impossible !" });
+    }
+    res.status(200).json(bestBook)
 }
