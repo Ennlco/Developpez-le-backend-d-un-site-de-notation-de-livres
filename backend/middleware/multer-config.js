@@ -19,12 +19,17 @@ const storage = multer.diskStorage({
 });
 
 const resizeImg = (req, res, next) =>{
-    sharp(storage.filename) 
-    .resize(500)
-    .toBuffer()
-    .then(() => res.status(200).json({message: 'image redimentionné !'}))
-    .catch(error => res.status(401).json({error}));
-    next();
-};
+    const filePath = req.file.path;
+    sharp(filePath) 
+    .resize(200)
+    .webp({quality: 85})
+    .then((data) =>{
+        sharp(data)
+        .toFile(filePath)
+        .then(() => res.status(200).json({message: 'Image compressé !'}))
+        .catch(error => res.status(401).json({error}))
+    })
+    .catch(error => res.status(400).json({error}))
+}
 
 module.exports = multer({storage, resizeImg}).single('image');
