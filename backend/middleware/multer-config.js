@@ -19,17 +19,22 @@ const storage = multer.diskStorage({
 });
 
 const resizeImg = (req, res, next) =>{
-    const filePath = req.file.path;
-    sharp(filePath) 
-    .resize(200)
-    .webp({quality: 85})
-    .then((data) =>{
-        sharp(data)
-        .toFile(filePath)
-        .then(() => res.status(200).json({message: 'Image compressé !'}))
-        .catch(error => res.status(401).json({error}))
-    })
-    .catch(error => res.status(400).json({error}))
+    
+    if (!req.file){
+        res.status(401).json({error: "Le fichier n'est pas bon !"})
+    } else {
+        const filePath = req.file.path;
+        sharp(filePath) 
+        .resize(200)
+        .webp({quality: 85})
+        .then((data) =>{
+            sharp(data)
+            .toFile(filePath)
+            .then(() => res.status(200).json({message: 'Image compressé !'}))
+            .catch(error => res.status(401).json({error: 'Je veux pas, il te manque un truc !'}))
+        })
+        .catch(error => res.status(400).json({error}))
+    }
 }
 
 module.exports = multer({storage, resizeImg}).single('image');
