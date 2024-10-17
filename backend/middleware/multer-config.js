@@ -1,23 +1,18 @@
 const multer = require("multer");
 const sharp = require("sharp");
-const fs = require("fs");  
+const fs = require("fs");
+const path = require("path");  
+
+
 const MIME_TYPES = {
    "image/jpg": "jpg",
    "image/jpeg": "jpg",
    "image/png": "png",
 };
-const storage = multer.diskStorage({
-   destination: (req, file, callback) => {
-       callback(null, "images");
-   },
-   filename: (req, file, callback) => {
-       const name = file.originalname.split(" ").join("_");
-       const extension = MIME_TYPES[file.mimetype] || "jpg";  
-       callback(null, Date.now() + "_" + name + "." + extension);  
-   },
-});
 
-// Filtrer les fichiers acceptÃ©s
+
+const storage = multer.memoryStorage();
+
 const fileFilter = (req, file, callback) => {
    const isValid = MIME_TYPES[file.mimetype];
    if (isValid) {
@@ -26,42 +21,53 @@ const fileFilter = (req, file, callback) => {
        callback(new Error("Type de fichier non pris en charge."), false);
    }
 };
+
 const upload = multer({
    storage: storage,
    limits: {
-       fileSize: 4 * 1024 * 1024, // Limitation image, inferieur a 4mo
+       fileSize: 4 * 1024 * 1024,
    },
    fileFilter: fileFilter,
 }).single("image");
 
-// Redimensionne et convertit l'image en WebP
+
 const compressImage = (req, res, next) => {
    if (!req.file) {
        return next();
    }
-   const filePath = req.file.path;
-   const webpFilePath = filePath.replace(/\.(jpg|jpeg|png)$/, ".webp");
-   sharp(filePath)
+
+   
+   const name = req.file.originalname.split(" ").join("_");
+   const extension = MIME_TYPES[req.file.mimetype] || "jpg";
+   const webpFilename = Date.now() + "_" + name.replace(/\.(jpg|jpeg|png)$/, ".webp");
+
+   
+   const imagesDir = path.join(__dirname, "../images");
+
+
+   if (!fs.existsSync(imagesDir)) {
+       fs.mkdirSync(imagesDir, { recursive: true });
+   }
+   const webpFilePath = path.join(imagesDir, webpFilename);
+
+  
+   sharp(req.file.buffer)
        .resize({ fit: "cover", height: 250, width: 250 })
-       .webp({ quality: 85 })  
-       .toFile(webpFilePath)  
+       .webp({ quality: 85 })
+       .toFile(webpFilePath)
        .then(() => {
-           // Supprimer  image orignal
-           fs.unlink(filePath, (err) => {
-               if (err) {
-                   console.error("Erreur lors de la suppression de l'image originale:", err);
-                   return next(err);
-               }
-    
-               req.file.path = webpFilePath;
-               req.file.filename = req.file.filename.replace(/\.(jpg|jpeg|png)$/, ".webp");
-               next();
-           });
+         
+           req.file.path = webpFilePath;
+           req.file.filename = webpFilename;
+           next();
        })
        .catch((err) => {
+           console.error("Erreur lors de la conversion en WebP :", err);
            next(err);
        });
 };
+
+
 const uploadImage = (req, res, next) => {
    upload(req, res, function (err) {
        if (err) {
